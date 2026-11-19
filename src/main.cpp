@@ -7,105 +7,83 @@
 
 #include "Population.hpp"
 #include "Parser.hpp"
+#include "BranchAndBound.hpp"
 
-const int FUNCTIONS_QNT = 8;
-const int POPULATION_QNT = 100;
+const int FUNCTIONS_QNT = 4; 
+const int POPULATION_QNT = 50;
 
 std::unordered_map<int, std::string> m = 
 {
-    {0, "Grasp                               "},
-    {1, "Grasp + Ruin + Recreate             "},
-    {2, "Grasp + 2-OPT-BIBI + Ruin + Recreate"},
-    {4, "Grasp + 4-OPT-BIBI + Ruin + Recreate"},
-    {3, "Grasp + 3-OPT-BIBI + Ruin + Recreate"},
-    {5, "Grasp + 4-OPT-FIFI + Ruin + Recreate"},
-    {6, "Grasp + 4-OPT-FIBI + Ruin + Recreate"},
-    {7, "Grasp + 4-OPT-BIFI + Ruin + Recreate"},
+    {0, "RCL                               "},
+    {1, "RCL + Ruin + Recreate             "},
+    {2, "RCL + 2-OPT + Ruin + Recreate     "},
+    {3, "Branch and Bound                  "}
 };
 
-
-std::vector<std::vector<Result>> runTests(Population* pop, int qnt, std::vector<double>* averageTimes)
+std::vector<std::vector<Result>> runTests(Population* pop, int, std::vector<double>* averageTimes)
 {
-
+    BranchAndBound bnb(*pop);
     std::vector<std::vector<Result>> results(FUNCTIONS_QNT);
+    
     averageTimes->assign(FUNCTIONS_QNT, 0.);
 
-    std::unordered_map<int, std::function<Individual(const Individual&)>> funcs
+    for(int i{0}; i < POPULATION_QNT; ++i)
     {
-        {0, [](const Individual& ind) 
-        { 
-            return ind; 
-        }},
-        {1, [pop](const Individual& ind)
-        { 
-            return pop->recreate(pop->ruin(ind)); 
-        }},
-        {2, [pop](const Individual& ind) 
-        { 
-            return pop->opt2(pop->recreate(pop->ruin(pop->opt2(ind)))); 
-        }},
-        {3, [pop](const Individual& ind) 
-        { 
-            return pop->opt3(pop->recreate(pop->ruin(pop->opt3(ind)))); 
-        }},
-        {4, [pop](const Individual& ind) 
-        { 
-            return pop->opt4BI(pop->recreate(pop->ruin(pop->opt4BI(ind)))); 
-        }},
-        {5, [pop](const Individual& ind) 
-        { 
-            return pop->opt4FI(pop->recreate(pop->ruin(pop->opt4FI(ind)))); 
-        }},
-        {6, [pop](const Individual& ind) 
-        { 
-            return pop->opt4BI(pop->recreate(pop->ruin(pop->opt4FI(ind)))); 
-        }},
-        {7, [pop](const Individual& ind) 
-        { 
-            return pop->opt4FI(pop->recreate(pop->ruin(pop->opt4BI(ind)))); 
-        }}
-    };
-
-    for(int i{0}; i < qnt; ++i)
-    {
-        Individual ind = pop->generateGrasp();
+        std::chrono::high_resolution_clock::time_point begin = std::chrono::high_resolution_clock::now();
+        Individual res = pop->generateGrasp();
+        std::chrono::high_resolution_clock::time_point end = std::chrono::high_resolution_clock::now();
         
-        for(int j{0}; j < FUNCTIONS_QNT; ++j)
-        {
-            std::chrono::high_resolution_clock::time_point begin = std::chrono::high_resolution_clock::now();
-            Individual res = funcs[j](ind);
-            std::chrono::high_resolution_clock::time_point end = std::chrono::high_resolution_clock::now();
-            
-            double indTime = std::chrono::duration<double, std::milli>(end - begin).count();
-
-            results[j].push_back({res, indTime});
-            (*averageTimes)[j] += indTime;
-        }
-
-        
+        double indTime = std::chrono::duration<double, std::milli>(end - begin).count();
+    
+        results[0].push_back({res, indTime});
+        (*averageTimes)[0] += indTime / POPULATION_QNT;
+    
+        begin = std::chrono::high_resolution_clock::now();
+        res = pop->recreate(pop->ruin(pop->generateGrasp()));
+        end = std::chrono::high_resolution_clock::now();
+    
+        indTime = std::chrono::duration<double, std::milli>(end - begin).count();
+    
+        results[1].push_back({res, indTime});
+        (*averageTimes)[1] += indTime / POPULATION_QNT;
+    
+        begin = std::chrono::high_resolution_clock::now();
+        res = pop->recreate(pop->ruin(pop->opt2(pop->generateGrasp())));
+        end = std::chrono::high_resolution_clock::now();
+    
+        indTime = std::chrono::duration<double, std::milli>(end - begin).count();
+    
+        results[2].push_back({res, indTime});
+        (*averageTimes)[2] += indTime / POPULATION_QNT;
     }
 
-    for(auto& v : results)
-        std::sort(v.begin(), v.end(),[](const Result& a, const Result& b) -> bool {return a.ind.fitness < b.ind.fitness;});
+    std::chrono::high_resolution_clock::time_point beginO = std::chrono::high_resolution_clock::now();
+    Individual otherRes = bnb.solve();
+    std::chrono::high_resolution_clock::time_point endO = std::chrono::high_resolution_clock::now();
     
+    double indTimeO = std::chrono::duration<double, std::milli>(endO - beginO).count();
 
-    for(auto& tt : (*averageTimes))
-        tt /= qnt;
+    results[3].push_back({otherRes, indTimeO});
+    (*averageTimes)[3] = indTimeO;
+    
+    for(auto& v : results)
+        std::sort(v.begin(), v.end(), [&](const Result& a, const Result& b)
+        {
+            return a.ind.score < b.ind.score;
+        });
 
     return results;
 }
 
-
 signed main(int argc, char* argv[])
 {
-    
     Population gaPop = Parser::parse(argc, argv);
         
     std::vector<double> averageTimes;
 
     auto results = runTests(&gaPop, POPULATION_QNT, &averageTimes);
 
-    Parser::printResults (results, averageTimes, m);
+    Parser::printResults(results, averageTimes, m);
     Parser::exportResults(results, averageTimes, m);
 
     return 0;

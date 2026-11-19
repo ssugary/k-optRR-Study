@@ -72,13 +72,14 @@ void Parser::exportResults(const std::vector<std::vector<Result>>& res, const st
 {
     std::ofstream ofs(output);
 
-    ofs << std::format("{:<38}   {:<8}   {:<8}   {:<9}   {:<11}   {:<10}\n", 
+    ofs << std::format("{:<38} | {:<8} | {:<8} | {:<9} | {:<11} | {:<10} | {:<11} \n", 
                             "Algorithm", 
                             "Median", 
                             "Max", 
                             "Delta Fit", 
                             "Average Time", 
-                            "Overhead");
+                            "Overhead",
+                            "Distance");
 
     Result graspMedian = res[0][res[0].size() / 2];
 
@@ -86,13 +87,14 @@ void Parser::exportResults(const std::vector<std::vector<Result>>& res, const st
     {
         Result median = res[i][res[i].size() / 2];
 
-        ofs << std::format("{:<38} | {:<8.1f} | {:<8.1f} | {:<9} | {:<8.3f}ms | {:<10}\n",
+        ofs << std::format("{:<38} | {:<8.1f} | {:<8.1f} | {:<9} | {:<8.3f}ms | {:<10} | {:<11} \n",
                                 names.at(i), 
                                 median.ind.fitness,
                                 res[i].back().ind.fitness, 
                                 calc::formatRelativeFitness(median.ind.fitness, graspMedian.ind.fitness),
                                 averageTimes[i], 
-                                calc::formatRelativeTime(averageTimes[i], averageTimes[2])
+                                calc::formatRelativeTime(averageTimes[i], averageTimes[0]),
+                                median.ind.dist
                             );
     }
 
@@ -103,8 +105,8 @@ void Parser::exportResults(const std::vector<std::vector<Result>>& res, const st
 
 void Parser::printResults(const std::vector<std::vector<Result>>& res, const std::vector<double>& averageTimes, const std::unordered_map<int, std::string>& names)
 {
-    std::cout << std::format("{:<38} | {:<8} | {:<8} | {:<9} | {:<11} | {:<10}\n", 
-        "Algorithm", "Median", "Max", "Delta Fit", "Average Time", "Overhead");
+    std::cout << std::format("{:<38} | {:<8} | {:<8} | {:<9} | {:<11} | {:<10} | {:<11} \n", 
+        "Algorithm", "Median", "Max", "Delta Fit", "Average Time", "Overhead", "Distance");
     std::cout << std::string(98, '-') << '\n';
 
     Result graspMedian = res[0][res[0].size() / 2];
@@ -115,12 +117,13 @@ void Parser::printResults(const std::vector<std::vector<Result>>& res, const std
         
         Result median = v[v.size() / 2];
         
-        std::cout << std::format("{:<38} | {:<8.1f} | {:<8.1f} | {:<9} | {:<8.3f}ms | {:<10}\n",
+        std::cout << std::format("{:<38} | {:<8.1f} | {:<8.1f} | {:<9} | {:<8.3f}ms | {:<10} | {:<11} \n",
                                 names.at(i), median.ind.fitness,
                                 res[i].back().ind.fitness, 
                                 calc::formatRelativeFitness(median.ind.fitness, graspMedian.ind.fitness),
                                 averageTimes[i], 
-                                calc::formatRelativeTime(averageTimes[i], averageTimes[2])
+                                calc::formatRelativeTime(averageTimes[i], averageTimes[0]),
+                                median.ind.dist
                             );
 
     }

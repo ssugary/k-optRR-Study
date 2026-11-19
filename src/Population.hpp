@@ -17,6 +17,8 @@ class Population
 {
     private:
  
+        friend class BranchAndBound;
+
         std::size_t cityQnt;
         
         const int startNode{};
@@ -43,6 +45,8 @@ class Population
         /*Heuristicas Construtivas*/
         Individual generateGrasp();
         Individual generateRandom();
+        Individual generateProfitRatioInsertion();
+        
 
         std::vector<Individual> pop;
 };

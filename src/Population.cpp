@@ -46,6 +46,58 @@ Individual Population::generateRandom()
     return ind;
 }
 
+Individual Population::generateProfitRatioInsertion()
+{
+    Individual ind;
+    ind.path.assign(cityQnt, SIZE_MAX); 
+    ind.path[0] = startNode;
+
+    std::vector<bool> visited(cityQnt, false);
+    visited[startNode] = true;
+    visited[endNode] = true;
+
+    int currentNode = startNode;
+    double currentDist{0.};
+    std::size_t idx{1};
+
+    while(idx < cityQnt) 
+    {
+        std::vector<std::pair<double, std::size_t>> candidates; 
+
+        for(std::size_t i{0}; i < cityQnt; ++i) 
+        {
+            if(!visited[i]) 
+            {
+                double distToNext = (*paths)[currentNode][i];
+                double distToEnd = (*paths)[i][endNode];
+
+                if(currentDist + distToNext + distToEnd <= TMax) 
+                {
+                    double distSafe = (distToNext <= 1e-8) ? 1e-4 : distToNext; 
+                    double ratio = (*profits)[i] / distSafe; 
+                    candidates.push_back({ratio, i});
+                }
+            }
+        }
+
+        if(candidates.empty()) 
+            break; 
+
+        std::sort(candidates.begin(), candidates.end(), [](const auto& a, const auto& b) {return a.first < b.first;});
+
+        int chosenCity = candidates.back().second;
+
+        ind.path[idx] = chosenCity;
+        currentDist += (*paths)[currentNode][chosenCity];
+        currentNode = chosenCity;
+        visited[chosenCity] = true;
+        idx++;
+    }
+
+    calcScore(ind); 
+    return ind;
+}
+
 Individual Population::generateGrasp()
 {
     Individual ind;
